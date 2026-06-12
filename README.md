@@ -71,7 +71,7 @@ Con el objetivo de cumplir el requerimiento de abstracción de datos y evitar la
 
 El backend implementa un diseño defensivo alineado con los estándares de seguridad de la industria.
 
-1. **Aislamiento de Credenciales y Secretos:** Queda estrictamente prohibido codificar de forma rígida (*hardcode*) cadenas de conexión a bases de datos, contraseñas maestras o llaves de firma en el código fuente. El string de conexión a SQL Server y la clave simétrica del JWT (`JwtSecretKey`) deben ser inyectados dinámicamente en tiempo de ejecución a través del web.config .
+1. **Aislamiento de Credenciales y Secretos:** Queda estrictamente prohibido codificar de forma rígida (*hardcode*) cadenas de conexión a bases de datos, contraseñas maestras o llaves de firma en el código fuente. El string de conexión a SQL Server y la clave simétrica del JWT (`JwtSecretKey`) deben ser inyectados dinámicamente en tiempo de ejecución a través del appsettings.json   .
 2. **Protección de Contraseñas en Reposo:** El sistema no posee visibilidad de contraseñas en texto plano. En el proceso de registro, la contraseña provista por el usuario pasa por un algoritmo de hashing criptográfico unidireccional con sal de alta iteración (*BCrypt* o *PBKDF2*), almacenando únicamente el hash resultante.
 3. **Mecanismo de Autenticación sin Estado (Stateless Auth):** Toda comunicación subsiguiente al inicio de sesión se valida mediante tokens **JWT (JSON Web Tokens)** transmitidos en la cabecera HTTP de las solicitudes bajo el esquema `Authorization: Bearer <Token>`. El backend descifra y verifica la firma del token usando la clave simétrica del servidor, extrayendo el `UsuarioId` (UUID) y el `Rol` para la toma de decisiones de autorización inmediata.
 
