@@ -7,5 +7,5 @@ public class GetElementoByIdResponse { }
 // --- Endpoint / Controlador ---
 public class GetElementoByIdEndpoint { }
 
-// --- Lógica de Negocio (Handler) ---
+// --- Lï¿½gica de Negocio (Handler) ---
 public class GetElementoByIdHandler { }

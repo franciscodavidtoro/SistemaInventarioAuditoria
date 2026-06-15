@@ -7,5 +7,5 @@ public class LoginResponse { }
 // --- Endpoint / Controlador ---
 public class LoginEndpoint { }
 
-// --- Lógica de Negocio (Handler) ---
+// --- Lï¿½gica de Negocio (Handler) ---
 public class LoginHandler { }
