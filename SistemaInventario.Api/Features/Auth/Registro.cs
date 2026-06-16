@@ -7,5 +7,5 @@ public class RegistroResponse { }
 // --- Endpoint / Controlador ---
 public class RegistroEndpoint { }
 
-// --- Lógica de Negocio (Handler) ---
+// --- Lï¿½gica de Negocio (Handler) ---
 public class RegistroHandler { }

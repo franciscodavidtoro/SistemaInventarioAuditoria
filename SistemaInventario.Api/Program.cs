@@ -1,41 +1,62 @@
+using System;
+using System.IO;
+using Microsoft.EntityFrameworkCore;
+using SistemaInventario.Api.Infrastructure.Database;
+using SistemaInventario.Api.Infrastructure.Security;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Ensure images folder exists (from configuration)
+var imagesRelativePath = builder.Configuration.GetValue<string>("FileStorage:ImagesPath")?.Trim() ?? "wwwroot/images/";
+var imagesAbsolutePath = Path.GetFullPath(imagesRelativePath, builder.Environment.ContentRootPath);
+Directory.CreateDirectory(imagesAbsolutePath);
+
+// Database (in-memory for Phase 1)
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseInMemoryDatabase("InventarioDbMock"));
+
+// Security
+builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
+
+// Swagger / OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+// Keep any existing AddOpenApi extension if present
+try
+{
+    builder.Services.AddOpenApi();
+}
+catch { /* ignore if AddOpenApi not available */ }
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Enable Swagger UI for all environments so the health endpoint is discoverable
+app.UseSwagger();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sistema Inventario API V1"));
+
+// Map legacy openapi if available
+try
 {
     app.MapOpenApi();
 }
+catch { /* ignore if MapOpenApi not available */ }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
-var summaries = new[]
+// Health endpoint (API check)
+app.MapGet("/api/health", (IConfiguration config, IWebHostEnvironment env) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
+    var result = new
+    {
+        status = "Running",
+        environment = env.EnvironmentName,
+        imagesPath = config["FileStorage:ImagesPath"],
+        timestamp = DateTime.UtcNow
+    };
+    return Results.Ok(result);
 })
-.WithName("GetWeatherForecast");
+.WithName("ApiHealth")
+.WithOpenApi();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

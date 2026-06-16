@@ -7,5 +7,5 @@ public class EscanearCodigoResponse { }
 // --- Endpoint / Controlador ---
 public class EscanearCodigoEndpoint { }
 
-// --- Lógica de Negocio (Handler) ---
+// --- Lï¿½gica de Negocio (Handler) ---
 public class EscanearCodigoHandler { }
