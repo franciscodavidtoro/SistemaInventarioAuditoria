@@ -63,19 +63,21 @@ public class LoginHandler
             return Results.Unauthorized(); // Retorna 401 si las credenciales son incorrectas
         }
 
-        // 3. Generación del Token JWT
+        // 3. Generación del Token JWT usando la estructura del equipo
         var tokenHandler = new JwtSecurityTokenHandler();
 
-        // Obtenemos la llave secreta desde el appsettings.json
-        var secretKey = _configuration["JwtSecretKey"];
+        // Obtenemos los valores navegando dentro del bloque "JwtSettings"
+        var secretKey = _configuration["JwtSettings:SecretKey"];
+        var issuer = _configuration["JwtSettings:Issuer"];
+        var audience = _configuration["JwtSettings:Audience"];
+
         if (string.IsNullOrEmpty(secretKey))
         {
-            throw new InvalidOperationException("La clave secreta del JWT no está configurada en appsettings.json.");
+            throw new InvalidOperationException("La clave secreta del JWT no está configurada.");
         }
 
         var key = Encoding.ASCII.GetBytes(secretKey);
 
-        // Creamos la "credencial" del usuario con su ID, su Rol y su Email
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new[]
@@ -84,14 +86,14 @@ public class LoginHandler
                 new Claim(ClaimTypes.Role, usuario.Rol),
                 new Claim(JwtRegisteredClaimNames.Email, usuario.Email)
             }),
-            Expires = DateTime.UtcNow.AddHours(8), // El token será válido por 8 horas
+            Expires = DateTime.UtcNow.AddHours(8),
+            Issuer = issuer,     
+            Audience = audience,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
 
         var token = tokenHandler.CreateToken(tokenDescriptor);
         var tokenString = tokenHandler.WriteToken(token);
-
-        // 4. Retornar el token al cliente
         return Results.Ok(new LoginResponse { Token = tokenString });
     }
 }
