@@ -11,6 +11,10 @@ var imagesRelativePath = builder.Configuration.GetValue<string>("FileStorage:Ima
 var imagesAbsolutePath = Path.GetFullPath(imagesRelativePath, builder.Environment.ContentRootPath);
 Directory.CreateDirectory(imagesAbsolutePath);
 
+// Registrar los handlers en el contenedor de dependencias
+builder.Services.AddScoped<SistemaInventario.Api.Features.Auth.RegistroHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Auth.LoginHandler>();
+
 // Database (in-memory for Phase 1)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseInMemoryDatabase("InventarioDbMock"));
@@ -58,5 +62,9 @@ app.MapGet("/api/health", (IConfiguration config, IWebHostEnvironment env) =>
 })
 .WithName("ApiHealth")
 .WithOpenApi();
+
+// Mapear las rutas de autenticación
+SistemaInventario.Api.Features.Auth.RegistroEndpoint.Map(app);
+SistemaInventario.Api.Features.Auth.LoginEndpoint.Map(app);
 
 app.Run();
