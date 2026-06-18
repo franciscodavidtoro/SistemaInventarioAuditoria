@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using SistemaInventario.Api.Infrastructure.Database;
 using SistemaInventario.Api.Infrastructure.Security;
@@ -21,6 +23,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Security
 builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
+// Register a passive authentication scheme that defers to the populated HttpContext.User
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = "Passive";
+    options.DefaultChallengeScheme = "Passive";
+    options.DefaultAuthenticateScheme = "Passive";
+})
+    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, SistemaInventario.Api.Infrastructure.Security.PassiveAuthenticationHandler>(
+        "Passive", _ => { });
+// No external JWT middleware added; use internal JwtValidationMiddleware instead.
+builder.Services.AddAuthorization();
 
 
 // Swagger / OpenAPI
@@ -70,6 +83,9 @@ catch { /* ignore if MapOpenApi not available */ }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+// Use in-repo JWT validator middleware to populate HttpContext.User when valid Bearer token provided
+app.UseJwtValidation();
+app.UseAuthorization();
 
 // Health endpoint (API check)
 app.MapGet("/api/health", (IConfiguration config, IWebHostEnvironment env) =>

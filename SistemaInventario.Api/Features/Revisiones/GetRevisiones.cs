@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using SistemaInventario.Api.Infrastructure.Database;
+using Microsoft.EntityFrameworkCore;
 
 namespace SistemaInventario.Api.Features.Revisiones;
 
@@ -24,12 +26,25 @@ public static class GetRevisiones
         DateTime? FechaFin
     );
 
-    private static IResult HandleAsync()
+    private static async Task<IResult> HandleAsync(ApplicationDbContext db, HttpContext http)
     {
-        // TODO: Lógica futura
-        // 1. Consultar base de datos
-        // 2. Mapear entidades a RevisionResponse, encriptando Id y UsuarioId
-        
-        return Results.Ok(new List<RevisionResponse>());
+        // Extraer usuario y rol del token
+        var userIdClaim = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) ?? http.User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+        var roleClaim = http.User.FindFirst(System.Security.Claims.ClaimTypes.Role);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var usuarioId))
+            return Results.Forbid();
+
+        var userRole = roleClaim?.Value ?? string.Empty;
+
+        // Si es Admin, devolver todas; si no, solo las del usuario
+        var query = db.Revisiones.AsNoTracking().AsQueryable();
+        if (!string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(r => r.UsuarioId == usuarioId);
+
+        var list = await query
+            .Select(r => new RevisionResponse(r.Id.ToString(), r.UsuarioId.ToString(), r.Estado, r.FechaInicio, r.FechaFin))
+            .ToListAsync();
+
+        return Results.Ok(list);
     }
 }
