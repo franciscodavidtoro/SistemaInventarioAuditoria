@@ -1,11 +1,33 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+
 namespace SistemaInventario.Api.Features.Revisiones;
 
-// --- DTOs (Request / Response) ---
-public class FinalizarRevisionRequest { }
-public class FinalizarRevisionResponse { }
+public static class FinalizarRevision
+{
+    public static void Map(IEndpointRouteBuilder app)
+    {
+        app.MapPost("/api/revisiones/{id}/finalizar", HandleAsync)
+            .RequireAuthorization()
+            .WithTags("Procesos de Revisi贸n y Auditor铆a")
+            .WithSummary("Clausurar definitivamente una sesi贸n de revisi贸n activa")
+            .WithDescription("Calcula la cobertura f铆sica y bloquea la sesi贸n.")
+            .Produces<Response>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status403Forbidden);
+    }
 
-// --- Endpoint / Controlador ---
-public class FinalizarRevisionEndpoint { }
+    public record Response(string Id, string Estado, int ElementosFaltantes);
 
-// --- L骻ica de Negocio (Handler) ---
-public class FinalizarRevisionHandler { }
+    private static IResult HandleAsync(string id)
+    {
+        // TODO: L贸gica futura
+        // 1. Extraer JWT UUID y validar propiedad o rol Admin (sino 403)
+        // 2. Desencriptar 'id' a Guid
+        // 3. Validar RowVersion para concurrencia optimista
+        // 4. Comparar conteo de escaneos vs total de inventario
+        // 5. Cambiar estado a Completada o Incompleta, poner FechaFin
+        
+        return Results.Ok(new Response(id, "Completada", 0));
+    }
+}
