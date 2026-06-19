@@ -254,10 +254,11 @@ public class UpdateUsuarioHandler
 /// </summary>
 public static class UpdateUsuarioEndpoint
 {
-    public static void MapUpdateUsuario(this WebApplication app)
+    public static void Map(WebApplication app)
     {
         app.MapPut("/api/usuarios/{id:guid}", UpdateUsuarioAsync)
             .WithName("UpdateUsuario")
+            .WithTags("Usuarios")
             .WithOpenApi()
             .Produces<UpdateUsuarioResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)

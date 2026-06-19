@@ -5,7 +5,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using SistemaInventario.Api.Infrastructure.Database;
 using SistemaInventario.Api.Infrastructure.Security;
-using SistemaInventario.Api.Features.Usuarios;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -107,10 +106,6 @@ app.MapGet("/api/health", (IConfiguration config, IWebHostEnvironment env) =>
 // ============================================================
 // MAPEO DE ENDPOINTS - MÓDULO USUARIOS
 // ============================================================
-app.MapGetUsuarios();
-app.MapGetUsuarioById();
-app.MapUpdateUsuario();
-app.MapDeleteUsuario();
 // Mapear las rutas de autenticación
 SistemaInventario.Api.Features.Auth.RegistroEndpoint.Map(app);
 SistemaInventario.Api.Features.Auth.LoginEndpoint.Map(app);
@@ -121,6 +116,12 @@ SistemaInventario.Api.Features.Revisiones.GetRevisiones.Map(app);
 SistemaInventario.Api.Features.Revisiones.GetRevisionById.Map(app);
 SistemaInventario.Api.Features.Revisiones.EscanearCodigo.Map(app);
 SistemaInventario.Api.Features.Revisiones.FinalizarRevision.Map(app);
+
+// Mapear rutas de Usuarios
+SistemaInventario.Api.Features.Usuarios.GetUsuariosEndpoint.Map(app);
+SistemaInventario.Api.Features.Usuarios.GetUsuarioByIdEndpoint.Map(app);
+SistemaInventario.Api.Features.Usuarios.UpdateUsuarioEndpoint.Map(app);
+SistemaInventario.Api.Features.Usuarios.DeleteUsuarioEndpoint.Map(app);
 
 app.Run();
 

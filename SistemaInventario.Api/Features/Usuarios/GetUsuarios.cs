@@ -67,10 +67,11 @@ public class GetUsuariosHandler
 /// </summary>
 public static class GetUsuariosEndpoint
 {
-    public static void MapGetUsuarios(this WebApplication app)
+    public static void Map(WebApplication app)
     {
         app.MapGet("/api/usuarios", GetUsuariosAsync)
             .WithName("GetUsuarios")
+            .WithTags("Usuarios")
             .WithOpenApi()
             .Produces<List<GetUsuariosResponse>>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status401Unauthorized)
