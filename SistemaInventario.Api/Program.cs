@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using SistemaInventario.Api.Infrastructure.Database;
 using SistemaInventario.Api.Infrastructure.Security;
+using SistemaInventario.Api.Features.Usuarios;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,6 +104,13 @@ app.MapGet("/api/health", (IConfiguration config, IWebHostEnvironment env) =>
 .WithName("ApiHealth")
 .WithOpenApi();
 
+// ============================================================
+// MAPEO DE ENDPOINTS - MÓDULO USUARIOS
+// ============================================================
+app.MapGetUsuarios();
+app.MapGetUsuarioById();
+app.MapUpdateUsuario();
+app.MapDeleteUsuario();
 // Mapear las rutas de autenticación
 SistemaInventario.Api.Features.Auth.RegistroEndpoint.Map(app);
 SistemaInventario.Api.Features.Auth.LoginEndpoint.Map(app);
