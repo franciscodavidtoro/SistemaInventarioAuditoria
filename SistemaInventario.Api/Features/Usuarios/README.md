@@ -718,3 +718,4 @@ curl -X GET "https://localhost:5001/api/usuarios/6ba7b810-9dad-11d1-80b4-00c04fd
 | **Seguridad** | No expone passwords, GUID identifiers, Stateless auth |
 | **Estado** | ✅ Implementado y compilado exitosamente |
 
+-
