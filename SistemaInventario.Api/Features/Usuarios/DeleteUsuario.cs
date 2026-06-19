@@ -81,10 +81,11 @@ public class DeleteUsuarioHandler
 /// </summary>
 public static class DeleteUsuarioEndpoint
 {
-    public static void MapDeleteUsuario(this WebApplication app)
+    public static void Map(WebApplication app)
     {
         app.MapDelete("/api/usuarios/{id:guid}", DeleteUsuarioAsync)
             .WithName("DeleteUsuario")
+            .WithTags("Usuarios")
             .WithOpenApi()
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status401Unauthorized)
