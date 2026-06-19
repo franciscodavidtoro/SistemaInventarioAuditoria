@@ -17,6 +17,14 @@ Directory.CreateDirectory(imagesAbsolutePath);
 builder.Services.AddScoped<SistemaInventario.Api.Features.Auth.RegistroHandler>();
 builder.Services.AddScoped<SistemaInventario.Api.Features.Auth.LoginHandler>();
 
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.GetElementosHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.GetElementoByIdHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.CreateElementoHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.UpdateElementoHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.DeleteElementoHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.ImportarMasivoHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.ExportarExcelHandler>();
+
 // Database (in-memory for Phase 1)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseInMemoryDatabase("InventarioDbMock"));
@@ -113,6 +121,15 @@ SistemaInventario.Api.Features.Revisiones.GetRevisiones.Map(app);
 SistemaInventario.Api.Features.Revisiones.GetRevisionById.Map(app);
 SistemaInventario.Api.Features.Revisiones.EscanearCodigo.Map(app);
 SistemaInventario.Api.Features.Revisiones.FinalizarRevision.Map(app);
+
+// Mapear rutas de Elementos
+SistemaInventario.Api.Features.Elementos.GetElementosEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.GetElementoByIdEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.CreateElementoEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.UpdateElementoEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.DeleteElementoEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.ImportarMasivoEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.ExportarExcelEndpoint.Map(app);
 
 app.Run();
 
