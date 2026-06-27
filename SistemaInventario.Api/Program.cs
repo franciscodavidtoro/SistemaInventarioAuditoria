@@ -111,6 +111,9 @@ app.MapGet("/api/health", (IConfiguration config, IWebHostEnvironment env) =>
 .WithName("ApiHealth")
 .WithOpenApi();
 
+// ============================================================
+// MAPEO DE ENDPOINTS - MÓDULO USUARIOS
+// ============================================================
 // Mapear las rutas de autenticación
 SistemaInventario.Api.Features.Auth.RegistroEndpoint.Map(app);
 SistemaInventario.Api.Features.Auth.LoginEndpoint.Map(app);
@@ -130,6 +133,11 @@ SistemaInventario.Api.Features.Elementos.UpdateElementoEndpoint.Map(app);
 SistemaInventario.Api.Features.Elementos.DeleteElementoEndpoint.Map(app);
 SistemaInventario.Api.Features.Elementos.ImportarMasivoEndpoint.Map(app);
 SistemaInventario.Api.Features.Elementos.ExportarExcelEndpoint.Map(app);
+// Mapear rutas de Usuarios
+SistemaInventario.Api.Features.Usuarios.GetUsuariosEndpoint.Map(app);
+SistemaInventario.Api.Features.Usuarios.GetUsuarioByIdEndpoint.Map(app);
+SistemaInventario.Api.Features.Usuarios.UpdateUsuarioEndpoint.Map(app);
+SistemaInventario.Api.Features.Usuarios.DeleteUsuarioEndpoint.Map(app);
 
 app.Run();
 
