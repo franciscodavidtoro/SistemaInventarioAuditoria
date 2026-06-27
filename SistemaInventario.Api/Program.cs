@@ -26,8 +26,25 @@ builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.ImportarMasi
 builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.ExportarExcelHandler>();
 
 // Database (in-memory for Phase 1)
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseInMemoryDatabase("InventarioDbMock"));
+// 1. Obtienes el string de conexión de tu appsettings.json
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// 2. Condicionas el tipo de base de datos según el entorno
+if (builder.Environment.IsDevelopment())
+{
+    // Si estás en Development, usa la base de datos en memoria
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseInMemoryDatabase("InventarioDbMock"));
+}
+else
+{
+    // Si estás en Production (o cualquier otro), usa SQL Server con tu conexión real
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseSqlServer(connectionString));
+}
+
+
+
 
 // Security
 builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
