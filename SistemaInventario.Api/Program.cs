@@ -13,13 +13,50 @@ var imagesRelativePath = builder.Configuration.GetValue<string>("FileStorage:Ima
 var imagesAbsolutePath = Path.GetFullPath(imagesRelativePath, builder.Environment.ContentRootPath);
 Directory.CreateDirectory(imagesAbsolutePath);
 
+// Ensure archivos folder exists (from configuration)
+var archivosRelativePath = builder.Configuration.GetValue<string>("FileStorage:ArchivosPath")?.Trim() ?? "wwwroot/archivos/";
+var archivosAbsolutePath = Path.GetFullPath(archivosRelativePath, builder.Environment.ContentRootPath);
+Directory.CreateDirectory(archivosAbsolutePath);
+
 // Registrar los handlers en el contenedor de dependencias
 builder.Services.AddScoped<SistemaInventario.Api.Features.Auth.RegistroHandler>();
 builder.Services.AddScoped<SistemaInventario.Api.Features.Auth.LoginHandler>();
 
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.GetElementosHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.GetElementoByIdHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.CreateElementoHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.UpdateElementoHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.DeleteElementoHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.ImportarMasivoHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.ExportarExcelHandler>();
+
+// Registrar servicio de almacenamiento de archivos y handlers del módulo Archivos
+builder.Services.AddScoped<SistemaInventario.Api.Infrastructure.Storage.IFileStorageService, SistemaInventario.Api.Infrastructure.Storage.FileStorageService>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Archivos.UploadArchivoHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Archivos.GetArchivoByIdHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Archivos.UpdateArchivoHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Archivos.DeleteArchivoHandler>();
+
 // Database (in-memory for Phase 1)
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseInMemoryDatabase("InventarioDbMock"));
+// 1. Obtienes el string de conexión de tu appsettings.json
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// 2. Condicionas el tipo de base de datos según el entorno
+if (builder.Environment.IsDevelopment())
+{
+    // Si estás en Development, usa la base de datos en memoria
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseInMemoryDatabase("InventarioDbMock"));
+}
+else
+{
+    // Si estás en Production (o cualquier otro), usa SQL Server con tu conexión real
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseSqlServer(connectionString));
+}
+
+
+
 
 // Security
 builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
@@ -117,11 +154,25 @@ SistemaInventario.Api.Features.Revisiones.GetRevisionById.Map(app);
 SistemaInventario.Api.Features.Revisiones.EscanearCodigo.Map(app);
 SistemaInventario.Api.Features.Revisiones.FinalizarRevision.Map(app);
 
+// Mapear rutas de Elementos
+SistemaInventario.Api.Features.Elementos.GetElementosEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.GetElementoByIdEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.CreateElementoEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.UpdateElementoEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.DeleteElementoEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.ImportarMasivoEndpoint.Map(app);
+SistemaInventario.Api.Features.Elementos.ExportarExcelEndpoint.Map(app);
 // Mapear rutas de Usuarios
 SistemaInventario.Api.Features.Usuarios.GetUsuariosEndpoint.Map(app);
 SistemaInventario.Api.Features.Usuarios.GetUsuarioByIdEndpoint.Map(app);
 SistemaInventario.Api.Features.Usuarios.UpdateUsuarioEndpoint.Map(app);
 SistemaInventario.Api.Features.Usuarios.DeleteUsuarioEndpoint.Map(app);
+
+// Mapear rutas de Archivos
+SistemaInventario.Api.Features.Archivos.UploadArchivoEndpoint.Map(app);
+SistemaInventario.Api.Features.Archivos.GetArchivoByIdEndpoint.Map(app);
+SistemaInventario.Api.Features.Archivos.UpdateArchivoEndpoint.Map(app);
+SistemaInventario.Api.Features.Archivos.DeleteArchivoEndpoint.Map(app);
 
 app.Run();
 
