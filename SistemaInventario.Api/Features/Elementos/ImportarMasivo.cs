@@ -76,7 +76,7 @@ public class ImportarMasivoHandler
             var importRows = await MiniExcel.QueryAsync<ImportarFila>(stream, string.Empty, excelType, "A1", null, CancellationToken.None, true);
             foreach (var row in importRows)
             {
-                if (string.IsNullOrWhiteSpace(row.CodigoBarras) || string.IsNullOrWhiteSpace(row.Nombre) || string.IsNullOrWhiteSpace(row.Categoria))
+                if (string.IsNullOrWhiteSpace(row.CodigoBarras) || string.IsNullOrWhiteSpace(row.CodigoBien) || string.IsNullOrWhiteSpace(row.Nombre) || string.IsNullOrWhiteSpace(row.NombreBien) || string.IsNullOrWhiteSpace(row.Categoria))
                     continue;
 
                 if (row.Precio < 0)
@@ -96,10 +96,16 @@ public class ImportarMasivoHandler
         var normalizados = rows.Select(r => new ImportarFila
         {
             CodigoBarras = r.CodigoBarras.Trim(),
+            CodigoBien = r.CodigoBien.Trim(),
             Nombre = r.Nombre.Trim(),
+            NombreBien = r.NombreBien.Trim(),
             Descripcion = r.Descripcion?.Trim(),
             Categoria = r.Categoria.Trim(),
-            Precio = r.Precio
+            Precio = r.Precio,
+            Serie = r.Serie?.Trim(),
+            Modelo = r.Modelo?.Trim(),
+            MarcaRazaOtros = r.MarcaRazaOtros?.Trim(),
+            Ubicacion = r.Ubicacion?.Trim()
         }).ToList();
 
         var existentes = await _db.Elementos
@@ -113,10 +119,16 @@ public class ImportarMasivoHandler
             {
                 Id = Guid.NewGuid(),
                 CodigoBarras = r.CodigoBarras,
+                CodigoBien = r.CodigoBien,
                 Nombre = r.Nombre,
+                NombreBien = r.NombreBien,
                 Descripcion = r.Descripcion,
                 Categoria = r.Categoria,
                 Precio = r.Precio,
+                Serie = r.Serie,
+                Modelo = r.Modelo,
+                MarcaRazaOtros = r.MarcaRazaOtros,
+                Ubicacion = r.Ubicacion,
                 UsuarioIdPropietario = usuarioId.Value
             })
             .ToList();
@@ -145,9 +157,15 @@ public class ImportarMasivoHandler
     public class ImportarFila
     {
         public string CodigoBarras { get; set; } = string.Empty;
+        public string CodigoBien { get; set; } = string.Empty;
         public string Nombre { get; set; } = string.Empty;
+        public string NombreBien { get; set; } = string.Empty;
         public string? Descripcion { get; set; }
         public string Categoria { get; set; } = string.Empty;
         public decimal Precio { get; set; }
+        public string? Serie { get; set; }
+        public string? Modelo { get; set; }
+        public string? MarcaRazaOtros { get; set; }
+        public string? Ubicacion { get; set; }
     }
 }

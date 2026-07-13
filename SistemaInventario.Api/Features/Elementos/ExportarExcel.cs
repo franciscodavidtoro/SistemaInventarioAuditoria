@@ -53,10 +53,16 @@ public class ExportarExcelHandler
             {
                 e.Id,
                 e.CodigoBarras,
+                e.CodigoBien,
                 e.Nombre,
+                e.NombreBien,
                 e.Descripcion,
                 e.Categoria,
                 e.Precio,
+                e.Serie,
+                e.Modelo,
+                e.MarcaRazaOtros,
+                e.Ubicacion,
                 e.RutaImagen,
                 e.UsuarioIdPropietario
             })

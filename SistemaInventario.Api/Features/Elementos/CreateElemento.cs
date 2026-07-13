@@ -12,10 +12,16 @@
     public class CreateElementoRequest
     {
         public string CodigoBarras { get; set; } = string.Empty;
+        public string CodigoBien { get; set; } = string.Empty;
         public string Nombre { get; set; } = string.Empty;
+        public string NombreBien { get; set; } = string.Empty;
         public string? Descripcion { get; set; }
         public string Categoria { get; set; } = string.Empty;
         public decimal Precio { get; set; }
+        public string? Serie { get; set; }
+        public string? Modelo { get; set; }
+        public string? MarcaRazaOtros { get; set; }
+        public string? Ubicacion { get; set; }
         public string? RutaImagen { get; set; }
     }
 
@@ -52,8 +58,8 @@
 
         public async Task<IResult> HandleAsync(CreateElementoRequest request, HttpContext http)
         {
-            if (string.IsNullOrWhiteSpace(request.CodigoBarras) || string.IsNullOrWhiteSpace(request.Nombre) || string.IsNullOrWhiteSpace(request.Categoria))
-                return Results.BadRequest("Código de barras, nombre y categoría son obligatorios.");
+            if (string.IsNullOrWhiteSpace(request.CodigoBarras) || string.IsNullOrWhiteSpace(request.CodigoBien) || string.IsNullOrWhiteSpace(request.Nombre) || string.IsNullOrWhiteSpace(request.NombreBien) || string.IsNullOrWhiteSpace(request.Categoria))
+                return Results.BadRequest("Código de barras, código del bien, nombre, nombre del bien y categoría son obligatorios.");
 
             if (request.Precio < 0)
                 return Results.BadRequest("El precio no puede ser negativo.");
@@ -71,10 +77,16 @@
             {
                 Id = Guid.NewGuid(),
                 CodigoBarras = codigoNormalizado,
+                CodigoBien = request.CodigoBien.Trim(),
                 Nombre = request.Nombre.Trim(),
+                NombreBien = request.NombreBien.Trim(),
                 Descripcion = request.Descripcion?.Trim(),
                 Categoria = request.Categoria.Trim(),
                 Precio = request.Precio,
+                Serie = request.Serie?.Trim(),
+                Modelo = request.Modelo?.Trim(),
+                MarcaRazaOtros = request.MarcaRazaOtros?.Trim(),
+                Ubicacion = request.Ubicacion?.Trim(),
                 RutaImagen = request.RutaImagen?.Trim(),
                 UsuarioIdPropietario = userId.Value
             };

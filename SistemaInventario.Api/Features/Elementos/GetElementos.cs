@@ -12,10 +12,16 @@ public class GetElementosResponse
 {
     public Guid Id { get; set; }
     public string CodigoBarras { get; set; } = string.Empty;
+    public string CodigoBien { get; set; } = string.Empty;
     public string Nombre { get; set; } = string.Empty;
+    public string NombreBien { get; set; } = string.Empty;
     public string? Descripcion { get; set; }
     public string Categoria { get; set; } = string.Empty;
     public decimal Precio { get; set; }
+    public string? Serie { get; set; }
+    public string? Modelo { get; set; }
+    public string? MarcaRazaOtros { get; set; }
+    public string? Ubicacion { get; set; }
     public string? RutaImagen { get; set; }
     public Guid UsuarioIdPropietario { get; set; }
 }
@@ -52,10 +58,16 @@ public class GetElementosHandler
             {
                 Id = e.Id,
                 CodigoBarras = e.CodigoBarras,
+                CodigoBien = e.CodigoBien,
                 Nombre = e.Nombre,
+                NombreBien = e.NombreBien,
                 Descripcion = e.Descripcion,
                 Categoria = e.Categoria,
                 Precio = e.Precio,
+                Serie = e.Serie,
+                Modelo = e.Modelo,
+                MarcaRazaOtros = e.MarcaRazaOtros,
+                Ubicacion = e.Ubicacion,
                 RutaImagen = e.RutaImagen,
                 UsuarioIdPropietario = e.UsuarioIdPropietario
             })
