@@ -15,6 +15,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Elemento> Elementos { get; set; } = null!;
     public DbSet<Revision> Revisiones { get; set; } = null!;
     public DbSet<RevisionDetalle> RevisionDetalles { get; set; } = null!;
+    public DbSet<Imagen> Imagenes { get; set; } = null!;
 }
 
 // 2. El Factory que solucionará el problema de la migración

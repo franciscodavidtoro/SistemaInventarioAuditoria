@@ -25,6 +25,12 @@ builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.DeleteElemen
 builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.ImportarMasivoHandler>();
 builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.ExportarExcelHandler>();
 
+builder.Services.AddSingleton<SistemaInventario.Api.Features.Imagenes.ImagenStorage>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Imagenes.CreateImagenHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Imagenes.GetImagenByIdHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Imagenes.UpdateImagenHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Imagenes.DeleteImagenHandler>();
+
 // Database (in-memory for Phase 1)
 // 1. Obtienes el string de conexión de tu appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -155,6 +161,12 @@ SistemaInventario.Api.Features.Usuarios.GetUsuariosEndpoint.Map(app);
 SistemaInventario.Api.Features.Usuarios.GetUsuarioByIdEndpoint.Map(app);
 SistemaInventario.Api.Features.Usuarios.UpdateUsuarioEndpoint.Map(app);
 SistemaInventario.Api.Features.Usuarios.DeleteUsuarioEndpoint.Map(app);
+
+// Mapear rutas de Imagenes
+SistemaInventario.Api.Features.Imagenes.CreateImagenEndpoint.Map(app);
+SistemaInventario.Api.Features.Imagenes.GetImagenByIdEndpoint.Map(app);
+SistemaInventario.Api.Features.Imagenes.UpdateImagenEndpoint.Map(app);
+SistemaInventario.Api.Features.Imagenes.DeleteImagenEndpoint.Map(app);
 
 app.Run();
 
