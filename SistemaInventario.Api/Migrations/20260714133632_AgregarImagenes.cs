@@ -18,8 +18,6 @@ namespace SistemaInventario.Api.Migrations
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     NombreArchivo = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ContentType = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    EntidadTipo = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    EntidadId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     UsuarioIdCarga = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },

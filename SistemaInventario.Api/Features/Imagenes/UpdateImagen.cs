@@ -28,7 +28,7 @@ public static class UpdateImagenEndpoint
             .RequireAuthorization()
             .WithTags("Imagenes")
             .WithSummary("Reemplazar el archivo de una imagen existente")
-            .WithDescription("Sustituye el archivo físico de una imagen ya registrada, conservando su Id y su asociación con la entidad.")
+            .WithDescription("Sustituye el archivo físico de una imagen ya registrada, conservando su Id.")
             .Produces<UpdateImagenResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status403Forbidden)
@@ -61,9 +61,8 @@ public class UpdateImagenHandler
         if (userId == null)
             return Results.Forbid();
 
-        var (existe, propietarioId) = await ImagenReglas.ValidarEntidadAsync(_db, imagen.EntidadTipo, imagen.EntidadId);
         var rol = ImagenReglas.GetLoggedUserRole(http);
-        if (existe && !ImagenReglas.PuedeGestionar(propietarioId, userId.Value, rol))
+        if (!ImagenReglas.PuedeGestionar(imagen.UsuarioIdCarga, userId.Value, rol))
             return Results.Forbid();
 
         var archivo = request.Archivo;

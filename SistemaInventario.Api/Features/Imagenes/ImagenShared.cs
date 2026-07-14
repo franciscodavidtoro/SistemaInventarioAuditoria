@@ -1,7 +1,5 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
-using SistemaInventario.Api.Infrastructure.Database;
 
 namespace SistemaInventario.Api.Features.Imagenes;
 
@@ -11,30 +9,12 @@ public static class ImagenReglas
     public const long MaxFileSizeBytes = 5 * 1024 * 1024;
     public static readonly string[] ExtensionesPermitidas = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
 
-    // Verifica que la entidad referenciada exista y devuelve el Id de su propietario/dueño lógico.
-    public static async Task<(bool Existe, Guid? PropietarioId)> ValidarEntidadAsync(ApplicationDbContext db, string entidadTipo, Guid entidadId)
-    {
-        if (string.Equals(entidadTipo, "Elemento", StringComparison.OrdinalIgnoreCase))
-        {
-            var elemento = await db.Elementos.AsNoTracking().FirstOrDefaultAsync(e => e.Id == entidadId);
-            return (elemento != null, elemento?.UsuarioIdPropietario);
-        }
-
-        if (string.Equals(entidadTipo, "Usuario", StringComparison.OrdinalIgnoreCase))
-        {
-            var usuario = await db.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == entidadId);
-            return (usuario != null, usuario?.Id);
-        }
-
-        return (false, null);
-    }
-
-    public static bool PuedeGestionar(Guid? propietarioId, Guid usuarioActualId, string rol)
+    public static bool PuedeGestionar(Guid propietarioId, Guid usuarioActualId, string rol)
     {
         if (string.Equals(rol, "Admin", StringComparison.OrdinalIgnoreCase))
             return true;
 
-        return propietarioId.HasValue && propietarioId.Value == usuarioActualId;
+        return propietarioId == usuarioActualId;
     }
 
     public static Guid? GetLoggedUserId(HttpContext http)
