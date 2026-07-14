@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using SistemaInventario.Api.Domain.Entities;
 using SistemaInventario.Api.Infrastructure.Database;
@@ -7,6 +8,13 @@ using SistemaInventario.Api.Infrastructure.Database;
 namespace SistemaInventario.Api.Features.Imagenes;
 
 // --- DTOs (Request / Response) ---
+public class CreateImagenRequest
+{
+    public string EntidadTipo { get; set; } = string.Empty;
+    public Guid EntidadId { get; set; }
+    public IFormFile Archivo { get; set; } = default!;
+}
+
 public class CreateImagenResponse
 {
     public string Id { get; set; } = string.Empty;
@@ -17,12 +25,12 @@ public static class CreateImagenEndpoint
 {
     public static void Map(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/imagenes", async (HttpRequest request, CreateImagenHandler handler, HttpContext http) => await handler.HandleAsync(request, http))
+        app.MapPost("/api/imagenes", async ([FromForm] CreateImagenRequest request, CreateImagenHandler handler, HttpContext http) => await handler.HandleAsync(request, http))
+            .DisableAntiforgery()
             .RequireAuthorization()
             .WithTags("Imagenes")
             .WithSummary("Subir una imagen y asociarla a una entidad")
             .WithDescription("Almacena el archivo en el servidor con un nombre único (UUID) y lo asocia a la entidad indicada (EntidadTipo/EntidadId).")
-            .Accepts<IFormFile>("multipart/form-data")
             .Produces<CreateImagenResponse>(StatusCodes.Status201Created)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status403Forbidden)
@@ -42,18 +50,14 @@ public class CreateImagenHandler
         _storage = storage;
     }
 
-    public async Task<IResult> HandleAsync(HttpRequest request, HttpContext http)
+    public async Task<IResult> HandleAsync(CreateImagenRequest request, HttpContext http)
     {
-        if (!request.HasFormContentType)
-            return Results.BadRequest("El contenido debe ser multipart/form-data.");
-
-        var form = await request.ReadFormAsync();
-        var archivo = form.Files.GetFile("archivo");
-        var entidadTipo = form["entidadTipo"].ToString();
-        var entidadIdRaw = form["entidadId"].ToString();
+        var archivo = request.Archivo;
+        var entidadTipo = request.EntidadTipo;
+        var entidadId = request.EntidadId;
 
         if (archivo == null)
-            return Results.BadRequest("Se requiere un archivo con el nombre 'archivo'.");
+            return Results.BadRequest("Se requiere un archivo con el nombre 'Archivo'.");
 
         if (archivo.Length <= 0 || archivo.Length > ImagenReglas.MaxFileSizeBytes)
             return Results.BadRequest("El archivo es demasiado grande o está vacío.");
@@ -65,7 +69,7 @@ public class CreateImagenHandler
         if (string.IsNullOrWhiteSpace(entidadTipo) || !ImagenReglas.TipoEntidadValido(entidadTipo))
             return Results.BadRequest("EntidadTipo inválido. Valores permitidos: " + string.Join(", ", ImagenReglas.TiposEntidadPermitidos));
 
-        if (!Guid.TryParse(entidadIdRaw, out var entidadId))
+        if (entidadId == Guid.Empty)
             return Results.BadRequest("EntidadId inválido.");
 
         var userId = ImagenReglas.GetLoggedUserId(http);

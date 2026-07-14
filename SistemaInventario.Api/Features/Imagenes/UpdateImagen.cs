@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using SistemaInventario.Api.Infrastructure.Database;
@@ -7,6 +8,11 @@ using SistemaInventario.Api.Infrastructure.Database;
 namespace SistemaInventario.Api.Features.Imagenes;
 
 // --- DTOs (Request / Response) ---
+public class UpdateImagenRequest
+{
+    public IFormFile Archivo { get; set; } = default!;
+}
+
 public class UpdateImagenResponse
 {
     public string Id { get; set; } = string.Empty;
@@ -17,12 +23,12 @@ public static class UpdateImagenEndpoint
 {
     public static void Map(IEndpointRouteBuilder app)
     {
-        app.MapPut("/api/imagenes/{id}", async (string id, HttpRequest request, UpdateImagenHandler handler, HttpContext http) => await handler.HandleAsync(id, request, http))
+        app.MapPut("/api/imagenes/{id}", async (string id, [FromForm] UpdateImagenRequest request, UpdateImagenHandler handler, HttpContext http) => await handler.HandleAsync(id, request, http))
+            .DisableAntiforgery()
             .RequireAuthorization()
             .WithTags("Imagenes")
             .WithSummary("Reemplazar el archivo de una imagen existente")
             .WithDescription("Sustituye el archivo físico de una imagen ya registrada, conservando su Id y su asociación con la entidad.")
-            .Accepts<IFormFile>("multipart/form-data")
             .Produces<UpdateImagenResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status403Forbidden)
@@ -42,7 +48,7 @@ public class UpdateImagenHandler
         _storage = storage;
     }
 
-    public async Task<IResult> HandleAsync(string id, HttpRequest request, HttpContext http)
+    public async Task<IResult> HandleAsync(string id, UpdateImagenRequest request, HttpContext http)
     {
         if (!Guid.TryParse(id, out var imagenId))
             return Results.BadRequest("Id inválido.");
@@ -60,13 +66,9 @@ public class UpdateImagenHandler
         if (existe && !ImagenReglas.PuedeGestionar(propietarioId, userId.Value, rol))
             return Results.Forbid();
 
-        if (!request.HasFormContentType)
-            return Results.BadRequest("El contenido debe ser multipart/form-data.");
-
-        var form = await request.ReadFormAsync();
-        var archivo = form.Files.GetFile("archivo");
+        var archivo = request.Archivo;
         if (archivo == null)
-            return Results.BadRequest("Se requiere un archivo con el nombre 'archivo'.");
+            return Results.BadRequest("Se requiere un archivo con el nombre 'Archivo'.");
 
         if (archivo.Length <= 0 || archivo.Length > ImagenReglas.MaxFileSizeBytes)
             return Results.BadRequest("El archivo es demasiado grande o está vacío.");
