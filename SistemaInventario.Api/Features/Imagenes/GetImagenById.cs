@@ -50,11 +50,6 @@ public class GetImagenByIdHandler
         if (userId == null)
             return Results.Forbid();
 
-        var (existe, propietarioId) = await ImagenReglas.ValidarEntidadAsync(_db, imagen.EntidadTipo, imagen.EntidadId);
-        var rol = ImagenReglas.GetLoggedUserRole(http);
-        if (existe && !ImagenReglas.PuedeGestionar(propietarioId, userId.Value, rol))
-            return Results.Forbid();
-
         var rutaFisica = _storage.GetFullPath(imagen.NombreArchivo);
         if (!File.Exists(rutaFisica))
             return Results.NotFound("El archivo físico ya no existe en el servidor.");

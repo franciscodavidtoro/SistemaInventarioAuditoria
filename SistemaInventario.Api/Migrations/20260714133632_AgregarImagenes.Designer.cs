@@ -12,7 +12,7 @@ using SistemaInventario.Api.Infrastructure.Database;
 namespace SistemaInventario.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260714124030_AgregarImagenes")]
+    [Migration("20260714133632_AgregarImagenes")]
     partial class AgregarImagenes
     {
         /// <inheritdoc />
@@ -67,13 +67,6 @@ namespace SistemaInventario.Api.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("EntidadId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("EntidadTipo")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 

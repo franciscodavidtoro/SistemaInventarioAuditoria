@@ -67,13 +67,6 @@ namespace SistemaInventario.Api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("EntidadId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("EntidadTipo")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
 

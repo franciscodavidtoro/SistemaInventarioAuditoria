@@ -15,7 +15,7 @@ public static class DeleteImagenEndpoint
             .RequireAuthorization()
             .WithTags("Imagenes")
             .WithSummary("Eliminar una imagen")
-            .WithDescription("Elimina el registro y el archivo físico asociado si el usuario es propietario de la entidad o administrador.")
+            .WithDescription("Elimina el registro y el archivo físico si el usuario es quien lo subió o es administrador.")
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status403Forbidden)
@@ -48,9 +48,8 @@ public class DeleteImagenHandler
         if (userId == null)
             return Results.Forbid();
 
-        var (existe, propietarioId) = await ImagenReglas.ValidarEntidadAsync(_db, imagen.EntidadTipo, imagen.EntidadId);
         var rol = ImagenReglas.GetLoggedUserRole(http);
-        if (existe && !ImagenReglas.PuedeGestionar(propietarioId, userId.Value, rol))
+        if (!ImagenReglas.PuedeGestionar(imagen.UsuarioIdCarga, userId.Value, rol))
             return Results.Forbid();
 
         _db.Imagenes.Remove(imagen);
