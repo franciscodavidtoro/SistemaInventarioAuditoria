@@ -8,12 +8,8 @@ namespace SistemaInventario.Api.Features.Imagenes;
 // --- Reglas y utilidades compartidas por el CRUD de Imagenes ---
 public static class ImagenReglas
 {
-    public static readonly string[] TiposEntidadPermitidos = { "Elemento", "Usuario" };
     public const long MaxFileSizeBytes = 5 * 1024 * 1024;
     public static readonly string[] ExtensionesPermitidas = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-
-    public static bool TipoEntidadValido(string entidadTipo)
-        => TiposEntidadPermitidos.Any(t => string.Equals(t, entidadTipo, StringComparison.OrdinalIgnoreCase));
 
     // Verifica que la entidad referenciada exista y devuelve el Id de su propietario/dueño lógico.
     public static async Task<(bool Existe, Guid? PropietarioId)> ValidarEntidadAsync(ApplicationDbContext db, string entidadTipo, Guid entidadId)
