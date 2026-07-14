@@ -8,10 +8,10 @@ using SistemaInventario.Api.Infrastructure.Database;
 namespace SistemaInventario.Api.Features.Imagenes;
 
 // --- DTOs (Request / Response) ---
-public class CreateImagenRequest
+// El único dato que aporta quien sube el archivo es el propio archivo:
+// la entidad dueña (tipo + id) se deduce de la ruta llamada.
+public class SubirImagenRequest
 {
-    public string EntidadTipo { get; set; } = string.Empty;
-    public Guid EntidadId { get; set; }
     public IFormFile Archivo { get; set; } = default!;
 }
 
@@ -21,16 +21,34 @@ public class CreateImagenResponse
 }
 
 // --- Endpoint / Controlador ---
+// Se registra una ruta de subida anidada por cada tipo de entidad soportado,
+// para que el EntidadId salga de la URL (el mismo id que el servidor ya
+// entregó al crear esa entidad) y el EntidadTipo quede fijo según la ruta.
 public static class CreateImagenEndpoint
 {
     public static void Map(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/imagenes", async ([FromForm] CreateImagenRequest request, CreateImagenHandler handler, HttpContext http) => await handler.HandleAsync(request, http))
+        app.MapPost("/api/elementos/{elementoId:guid}/imagenes",
+            async (Guid elementoId, [FromForm] SubirImagenRequest request, CreateImagenHandler handler, HttpContext http)
+                => await handler.HandleAsync("Elemento", elementoId, request.Archivo, http))
             .DisableAntiforgery()
             .RequireAuthorization()
             .WithTags("Imagenes")
-            .WithSummary("Subir una imagen y asociarla a una entidad")
-            .WithDescription("Almacena el archivo en el servidor con un nombre único (UUID) y lo asocia a la entidad indicada (EntidadTipo/EntidadId).")
+            .WithSummary("Subir una imagen para un elemento")
+            .WithDescription("Almacena el archivo en el servidor con un nombre único (UUID) y lo asocia al elemento indicado en la URL.")
+            .Produces<CreateImagenResponse>(StatusCodes.Status201Created)
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound);
+
+        app.MapPost("/api/usuarios/{usuarioId:guid}/imagenes",
+            async (Guid usuarioId, [FromForm] SubirImagenRequest request, CreateImagenHandler handler, HttpContext http)
+                => await handler.HandleAsync("Usuario", usuarioId, request.Archivo, http))
+            .DisableAntiforgery()
+            .RequireAuthorization()
+            .WithTags("Imagenes")
+            .WithSummary("Subir una imagen de perfil para un usuario")
+            .WithDescription("Almacena el archivo en el servidor con un nombre único (UUID) y lo asocia al usuario indicado en la URL.")
             .Produces<CreateImagenResponse>(StatusCodes.Status201Created)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status403Forbidden)
@@ -50,12 +68,8 @@ public class CreateImagenHandler
         _storage = storage;
     }
 
-    public async Task<IResult> HandleAsync(CreateImagenRequest request, HttpContext http)
+    public async Task<IResult> HandleAsync(string entidadTipo, Guid entidadId, IFormFile archivo, HttpContext http)
     {
-        var archivo = request.Archivo;
-        var entidadTipo = request.EntidadTipo;
-        var entidadId = request.EntidadId;
-
         if (archivo == null)
             return Results.BadRequest("Se requiere un archivo con el nombre 'Archivo'.");
 
@@ -66,19 +80,13 @@ public class CreateImagenHandler
         if (!ImagenReglas.ExtensionesPermitidas.Contains(extension) || !archivo.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
             return Results.BadRequest("El archivo debe ser una imagen (jpg, jpeg, png, gif o webp).");
 
-        if (string.IsNullOrWhiteSpace(entidadTipo) || !ImagenReglas.TipoEntidadValido(entidadTipo))
-            return Results.BadRequest("EntidadTipo inválido. Valores permitidos: " + string.Join(", ", ImagenReglas.TiposEntidadPermitidos));
-
-        if (entidadId == Guid.Empty)
-            return Results.BadRequest("EntidadId inválido.");
-
         var userId = ImagenReglas.GetLoggedUserId(http);
         if (userId == null)
             return Results.Forbid();
 
         var (existe, propietarioId) = await ImagenReglas.ValidarEntidadAsync(_db, entidadTipo, entidadId);
         if (!existe)
-            return Results.NotFound("La entidad indicada no existe.");
+            return Results.NotFound($"No existe {entidadTipo} con ese id.");
 
         var rol = ImagenReglas.GetLoggedUserRole(http);
         if (!ImagenReglas.PuedeGestionar(propietarioId, userId.Value, rol))
