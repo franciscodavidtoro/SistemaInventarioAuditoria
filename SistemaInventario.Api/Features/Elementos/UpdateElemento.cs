@@ -11,13 +11,8 @@ namespace SistemaInventario.Api.Features.Elementos;
 // --- DTOs (Request / Response) ---
 public class UpdateElementoRequest
 {
-    public string CodigoBarras { get; set; } = string.Empty;
     public string CodigoBien { get; set; } = string.Empty;
-    public string Nombre { get; set; } = string.Empty;
     public string NombreBien { get; set; } = string.Empty;
-    public string? Descripcion { get; set; }
-    public string Categoria { get; set; } = string.Empty;
-    public decimal Precio { get; set; }
     public string? Serie { get; set; }
     public string? Modelo { get; set; }
     public string? MarcaRazaOtros { get; set; }
@@ -62,11 +57,8 @@ public class UpdateElementoHandler
         if (!Guid.TryParse(id, out var elementoId))
             return Results.BadRequest("Id inválido.");
 
-        if (string.IsNullOrWhiteSpace(request.CodigoBarras) || string.IsNullOrWhiteSpace(request.CodigoBien) || string.IsNullOrWhiteSpace(request.Nombre) || string.IsNullOrWhiteSpace(request.NombreBien) || string.IsNullOrWhiteSpace(request.Categoria))
-            return Results.BadRequest("Código de barras, código del bien, nombre, nombre del bien y categoría son obligatorios.");
-
-        if (request.Precio < 0)
-            return Results.BadRequest("El precio no puede ser negativo.");
+        if (string.IsNullOrWhiteSpace(request.CodigoBien) || string.IsNullOrWhiteSpace(request.NombreBien))
+            return Results.BadRequest("Código del bien y nombre del bien son obligatorios.");
 
         var elemento = await _db.Elementos.FirstOrDefaultAsync(e => e.Id == elementoId);
         if (elemento == null)
@@ -80,18 +72,8 @@ public class UpdateElementoHandler
         if (elemento.UsuarioIdPropietario != userId.Value && !string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
             return Results.Forbid();
 
-        var codigoNormalizado = request.CodigoBarras.Trim();
-        var conflict = await _db.Elementos.AnyAsync(e => e.CodigoBarras == codigoNormalizado && e.Id != elementoId);
-        if (conflict)
-            return Results.Conflict("Ya existe otro elemento con ese código de barras.");
-
-        elemento.CodigoBarras = codigoNormalizado;
         elemento.CodigoBien = request.CodigoBien.Trim();
-        elemento.Nombre = request.Nombre.Trim();
         elemento.NombreBien = request.NombreBien.Trim();
-        elemento.Descripcion = request.Descripcion?.Trim();
-        elemento.Categoria = request.Categoria.Trim();
-        elemento.Precio = request.Precio;
         elemento.Serie = request.Serie?.Trim();
         elemento.Modelo = request.Modelo?.Trim();
         elemento.MarcaRazaOtros = request.MarcaRazaOtros?.Trim();

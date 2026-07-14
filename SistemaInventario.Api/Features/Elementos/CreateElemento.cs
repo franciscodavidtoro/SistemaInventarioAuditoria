@@ -11,13 +11,8 @@
     // --- DTOs (Request / Response) ---
     public class CreateElementoRequest
     {
-        public string CodigoBarras { get; set; } = string.Empty;
         public string CodigoBien { get; set; } = string.Empty;
-        public string Nombre { get; set; } = string.Empty;
         public string NombreBien { get; set; } = string.Empty;
-        public string? Descripcion { get; set; }
-        public string Categoria { get; set; } = string.Empty;
-        public decimal Precio { get; set; }
         public string? Serie { get; set; }
         public string? Modelo { get; set; }
         public string? MarcaRazaOtros { get; set; }
@@ -58,31 +53,18 @@
 
         public async Task<IResult> HandleAsync(CreateElementoRequest request, HttpContext http)
         {
-            if (string.IsNullOrWhiteSpace(request.CodigoBarras) || string.IsNullOrWhiteSpace(request.CodigoBien) || string.IsNullOrWhiteSpace(request.Nombre) || string.IsNullOrWhiteSpace(request.NombreBien) || string.IsNullOrWhiteSpace(request.Categoria))
-                return Results.BadRequest("Código de barras, código del bien, nombre, nombre del bien y categoría son obligatorios.");
-
-            if (request.Precio < 0)
-                return Results.BadRequest("El precio no puede ser negativo.");
+            if (string.IsNullOrWhiteSpace(request.CodigoBien) || string.IsNullOrWhiteSpace(request.NombreBien))
+                return Results.BadRequest("Código del bien y nombre del bien son obligatorios.");
 
             var userId = GetLoggedUserId(http);
             if (userId == null)
                 return Results.Forbid();
 
-            var codigoNormalizado = request.CodigoBarras.Trim();
-            var existe = await _db.Elementos.AnyAsync(e => e.CodigoBarras == codigoNormalizado);
-            if (existe)
-                return Results.Conflict("Ya existe un elemento con ese código de barras.");
-
             var elemento = new Elemento
             {
                 Id = Guid.NewGuid(),
-                CodigoBarras = codigoNormalizado,
                 CodigoBien = request.CodigoBien.Trim(),
-                Nombre = request.Nombre.Trim(),
                 NombreBien = request.NombreBien.Trim(),
-                Descripcion = request.Descripcion?.Trim(),
-                Categoria = request.Categoria.Trim(),
-                Precio = request.Precio,
                 Serie = request.Serie?.Trim(),
                 Modelo = request.Modelo?.Trim(),
                 MarcaRazaOtros = request.MarcaRazaOtros?.Trim(),
