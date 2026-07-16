@@ -60,11 +60,18 @@
             if (userId == null)
                 return Results.Forbid();
 
+            var codigoBien = request.CodigoBien.Trim();
+            var nombreBien = request.NombreBien.Trim();
+
+            var existeDuplicado = await _db.Elementos.AnyAsync(e => e.CodigoBien == codigoBien);
+            if (existeDuplicado)
+                return Results.Conflict("Ya existe un elemento con ese código del bien.");
+
             var elemento = new Elemento
             {
                 Id = Guid.NewGuid(),
-                CodigoBien = request.CodigoBien.Trim(),
-                NombreBien = request.NombreBien.Trim(),
+                CodigoBien = codigoBien,
+                NombreBien = nombreBien,
                 Serie = request.Serie?.Trim(),
                 Modelo = request.Modelo?.Trim(),
                 MarcaRazaOtros = request.MarcaRazaOtros?.Trim(),

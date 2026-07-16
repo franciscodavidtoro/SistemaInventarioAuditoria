@@ -38,7 +38,8 @@ public static class UpdateElementoEndpoint
             .Produces<UpdateElementoResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status403Forbidden)
-            .Produces(StatusCodes.Status404NotFound);
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status409Conflict);
     }
 }
 
@@ -72,8 +73,15 @@ public class UpdateElementoHandler
         if (elemento.UsuarioIdPropietario != userId.Value && !string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
             return Results.Forbid();
 
-        elemento.CodigoBien = request.CodigoBien.Trim();
-        elemento.NombreBien = request.NombreBien.Trim();
+        var codigoBien = request.CodigoBien.Trim();
+        var nombreBien = request.NombreBien.Trim();
+
+        var existeDuplicado = await _db.Elementos.AnyAsync(e => e.CodigoBien == codigoBien && e.Id != elementoId);
+        if (existeDuplicado)
+            return Results.Conflict("Ya existe otro elemento con ese código del bien.");
+
+        elemento.CodigoBien = codigoBien;
+        elemento.NombreBien = nombreBien;
         elemento.Serie = request.Serie?.Trim();
         elemento.Modelo = request.Modelo?.Trim();
         elemento.MarcaRazaOtros = request.MarcaRazaOtros?.Trim();
