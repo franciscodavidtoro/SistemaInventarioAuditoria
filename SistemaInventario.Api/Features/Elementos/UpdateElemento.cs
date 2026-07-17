@@ -11,12 +11,11 @@ namespace SistemaInventario.Api.Features.Elementos;
 // --- DTOs (Request / Response) ---
 public class UpdateElementoRequest
 {
-    public string CodigoBien { get; set; } = string.Empty;
-    public string NombreBien { get; set; } = string.Empty;
-    public string? Serie { get; set; }
-    public string? Modelo { get; set; }
-    public string? MarcaRazaOtros { get; set; }
-    public string? Ubicacion { get; set; }
+    public string CodigoBarras { get; set; } = string.Empty;
+    public string Nombre { get; set; } = string.Empty;
+    public string? Descripcion { get; set; }
+    public string Categoria { get; set; } = string.Empty;
+    public decimal Precio { get; set; }
     public string? RutaImagen { get; set; }
 }
 
@@ -38,8 +37,7 @@ public static class UpdateElementoEndpoint
             .Produces<UpdateElementoResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status403Forbidden)
-            .Produces(StatusCodes.Status404NotFound)
-            .Produces(StatusCodes.Status409Conflict);
+            .Produces(StatusCodes.Status404NotFound);
     }
 }
 
@@ -58,8 +56,11 @@ public class UpdateElementoHandler
         if (!Guid.TryParse(id, out var elementoId))
             return Results.BadRequest("Id inválido.");
 
-        if (string.IsNullOrWhiteSpace(request.CodigoBien) || string.IsNullOrWhiteSpace(request.NombreBien))
-            return Results.BadRequest("Código del bien y nombre del bien son obligatorios.");
+        if (string.IsNullOrWhiteSpace(request.CodigoBarras) || string.IsNullOrWhiteSpace(request.Nombre) || string.IsNullOrWhiteSpace(request.Categoria))
+            return Results.BadRequest("Código de barras, nombre y categoría son obligatorios.");
+
+        if (request.Precio < 0)
+            return Results.BadRequest("El precio no puede ser negativo.");
 
         var elemento = await _db.Elementos.FirstOrDefaultAsync(e => e.Id == elementoId);
         if (elemento == null)
@@ -73,19 +74,16 @@ public class UpdateElementoHandler
         if (elemento.UsuarioIdPropietario != userId.Value && !string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase))
             return Results.Forbid();
 
-        var codigoBien = request.CodigoBien.Trim();
-        var nombreBien = request.NombreBien.Trim();
+        var codigoNormalizado = request.CodigoBarras.Trim();
+        var conflict = await _db.Elementos.AnyAsync(e => e.CodigoBarras == codigoNormalizado && e.Id != elementoId);
+        if (conflict)
+            return Results.Conflict("Ya existe otro elemento con ese código de barras.");
 
-        var existeDuplicado = await _db.Elementos.AnyAsync(e => e.CodigoBien == codigoBien && e.Id != elementoId);
-        if (existeDuplicado)
-            return Results.Conflict("Ya existe otro elemento con ese código del bien.");
-
-        elemento.CodigoBien = codigoBien;
-        elemento.NombreBien = nombreBien;
-        elemento.Serie = request.Serie?.Trim();
-        elemento.Modelo = request.Modelo?.Trim();
-        elemento.MarcaRazaOtros = request.MarcaRazaOtros?.Trim();
-        elemento.Ubicacion = request.Ubicacion?.Trim();
+        elemento.CodigoBarras = codigoNormalizado;
+        elemento.Nombre = request.Nombre.Trim();
+        elemento.Descripcion = request.Descripcion?.Trim();
+        elemento.Categoria = request.Categoria.Trim();
+        elemento.Precio = request.Precio;
         elemento.RutaImagen = request.RutaImagen?.Trim();
 
         _db.Elementos.Update(elemento);
