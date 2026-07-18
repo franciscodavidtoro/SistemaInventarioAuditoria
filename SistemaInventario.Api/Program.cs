@@ -89,8 +89,11 @@ builder.Services.AddSwaggerGen(options =>
         [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
     });
 
-    // ACTIVA EL FILTRO PARA QUITAR CANDADOS A LAS EXCEPCIONES
+    // FILTRO: Quitar candados a los endpoints sin autenticación
     options.OperationFilter<SistemaInventario.Api.Infrastructure.Security.QuitarCandadoFiltro>();
+    
+    // FILTRO: Documentar automáticamente la respuesta 401 en endpoints autorizados
+    options.OperationFilter<SistemaInventario.Api.Infrastructure.Security.DocumentarUnauthorizedFiltro>();
 });
 // Keep any existing AddOpenApi extension if present
 try
