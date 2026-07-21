@@ -76,7 +76,10 @@ public class ImportarMasivoHandler
             var importRows = await MiniExcel.QueryAsync<ImportarFila>(stream, string.Empty, excelType, "A1", null, CancellationToken.None, true);
             foreach (var row in importRows)
             {
-                if (string.IsNullOrWhiteSpace(row.CodigoBien) || string.IsNullOrWhiteSpace(row.NombreBien))
+                if (string.IsNullOrWhiteSpace(row.CodigoBarras) || string.IsNullOrWhiteSpace(row.Nombre) || string.IsNullOrWhiteSpace(row.Categoria))
+                    continue;
+
+                if (row.Precio < 0)
                     continue;
 
                 rows.Add(row);
@@ -86,36 +89,34 @@ public class ImportarMasivoHandler
         if (!rows.Any())
             return Results.BadRequest("No se encontraron filas válidas en el archivo.");
 
-        var duplicateCodes = rows.GroupBy(r => r.CodigoBien.Trim()).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        var duplicateCodes = rows.GroupBy(r => r.CodigoBarras.Trim()).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
         if (duplicateCodes.Any())
-            return Results.BadRequest($"El archivo contiene códigos del bien duplicados: {string.Join(", ", duplicateCodes)}.");
+            return Results.BadRequest($"El archivo contiene códigos de barras duplicados: {string.Join(", ", duplicateCodes)}.");
 
         var normalizados = rows.Select(r => new ImportarFila
         {
-            CodigoBien = r.CodigoBien.Trim(),
-            NombreBien = r.NombreBien.Trim(),
-            Serie = r.Serie?.Trim(),
-            Modelo = r.Modelo?.Trim(),
-            MarcaRazaOtros = r.MarcaRazaOtros?.Trim(),
-            Ubicacion = r.Ubicacion?.Trim()
+            CodigoBarras = r.CodigoBarras.Trim(),
+            Nombre = r.Nombre.Trim(),
+            Descripcion = r.Descripcion?.Trim(),
+            Categoria = r.Categoria.Trim(),
+            Precio = r.Precio
         }).ToList();
 
         var existentes = await _db.Elementos
-            .Where(e => normalizados.Select(r => r.CodigoBien).Contains(e.CodigoBien))
-            .Select(e => e.CodigoBien)
+            .Where(e => normalizados.Select(r => r.CodigoBarras).Contains(e.CodigoBarras))
+            .Select(e => e.CodigoBarras)
             .ToListAsync();
 
         var nuevos = normalizados
-            .Where(r => !existentes.Contains(r.CodigoBien))
+            .Where(r => !existentes.Contains(r.CodigoBarras))
             .Select(r => new Elemento
             {
                 Id = Guid.NewGuid(),
-                CodigoBien = r.CodigoBien,
-                NombreBien = r.NombreBien,
-                Serie = r.Serie,
-                Modelo = r.Modelo,
-                MarcaRazaOtros = r.MarcaRazaOtros,
-                Ubicacion = r.Ubicacion,
+                CodigoBarras = r.CodigoBarras,
+                Nombre = r.Nombre,
+                Descripcion = r.Descripcion,
+                Categoria = r.Categoria,
+                Precio = r.Precio,
                 UsuarioIdPropietario = usuarioId.Value
             })
             .ToList();
@@ -143,11 +144,10 @@ public class ImportarMasivoHandler
 
     public class ImportarFila
     {
-        public string CodigoBien { get; set; } = string.Empty;
-        public string NombreBien { get; set; } = string.Empty;
-        public string? Serie { get; set; }
-        public string? Modelo { get; set; }
-        public string? MarcaRazaOtros { get; set; }
-        public string? Ubicacion { get; set; }
+        public string CodigoBarras { get; set; } = string.Empty;
+        public string Nombre { get; set; } = string.Empty;
+        public string? Descripcion { get; set; }
+        public string Categoria { get; set; } = string.Empty;
+        public decimal Precio { get; set; }
     }
 }
