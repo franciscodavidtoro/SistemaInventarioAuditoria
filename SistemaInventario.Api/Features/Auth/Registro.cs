@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using SistemaInventario.Api.Domain.Entities;
 using SistemaInventario.Api.Infrastructure.Database;
@@ -14,32 +16,33 @@ public class RegistroRequest
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
 }
-public class RegistroResponse {
-    public string Mensaje { get; set; } = string.Empty;
 
+public class RegistroResponse
+{
+    public string Mensaje { get; set; } = string.Empty;
 }
 
 // --- Endpoint / Controlador ---
-public class RegistroEndpoint {
+public static class RegistroEndpoint
+{
     public static void Map(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/auth/registro", (RegistroRequest request, RegistroHandler handler) =>
         {
             return handler.Handle(request);
         })
-        .AllowAnonymous() // Permite que cualquiera acceda sin estar logueado
-        .WithTags("Autenticación y Cuentas") // Organiza el endpoint en Swagger
+        .AllowAnonymous()
+        .WithTags("Autenticación y Cuentas")
         .WithSummary("Registro autónomo de nuevos usuarios en el sistema")
-        .WithDescription("Endpoint público de autoservicio. Descartará cualquier rol enviado e impondrá el rol 'User' por defecto por motivos de seguridad. Valida la Cédula Ecuatoriana (Módulo 10) y hashea la contraseña de forma unidireccional.");
+        .WithDescription("Endpoint público. El primer usuario registrado en la BD vacía recibirá el rol 'Admin'. Los subsiguientes recibirán 'User'. Valida formato de correo, Cédula (Módulo 10) y exige políticas de contraseñas fuertes.");
     }
 }
 
-// --- L�gica de Negocio (Handler) ---
+// --- Lógica de Negocio (Handler) ---
 public class RegistroHandler
 {
     private readonly ApplicationDbContext _context;
 
-    // Inyectamos el DbContext que me acabas de mostrar
     public RegistroHandler(ApplicationDbContext context)
     {
         _context = context;
@@ -53,25 +56,40 @@ public class RegistroHandler
             return Results.BadRequest(new RegistroResponse { Mensaje = "Cédula inválida." });
         }
 
-        // 2. Control de Unicidad (Email o Cédula duplicados)
+        // 2. Verificar formato del correo electrónico
+        if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        {
+            return Results.BadRequest(new RegistroResponse { Mensaje = "El formato del correo electrónico no es válido." });
+        }
+
+        // 3. Validación de complejidad de la contraseña
+        if (!Regex.IsMatch(request.Password, @"^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$"))
+        {
+            return Results.BadRequest(new RegistroResponse { Mensaje = "La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, un número y un carácter especial." });
+        }
+
+        // 4. Control de Unicidad (Email o Cédula duplicados)
         bool existeUsuario = _context.Usuarios.Any(u => u.Email == request.Email || u.Cedula == request.Cedula);
         if (existeUsuario)
         {
             return Results.Conflict(new RegistroResponse { Mensaje = "El correo electrónico o la cédula ya se encuentran registrados." });
         }
 
-        // 3. Cifrado de contraseña y asignación inmutable de Rol
+        // 5. Verificación de Primer Usuario (Admin) y Cifrado
+        bool esPrimerUsuario = !_context.Usuarios.Any();
+        string rolAsignado = esPrimerUsuario ? "Admin" : "User";
+
         var nuevoUsuario = new Usuario
         {
-            Id = Guid.NewGuid(), // Generamos el UUID requerido por la especificación
+            Id = Guid.NewGuid(),
             Cedula = request.Cedula,
             Nombre = request.Nombre,
             Email = request.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password), // Hashing seguro
-            Rol = "User" // Prevención de escalabilidad de privilegios
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            Rol = rolAsignado
         };
 
-        // 4. Persistencia en la Base de Datos
+        // 6. Persistencia en la Base de Datos
         _context.Usuarios.Add(nuevoUsuario);
         _context.SaveChanges();
 

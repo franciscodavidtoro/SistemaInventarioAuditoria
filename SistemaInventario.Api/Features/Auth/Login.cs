@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent; // Necesario para el diccionario seguro en memoria
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -35,7 +36,7 @@ public static class LoginEndpoint
         .AllowAnonymous()
         .WithTags("Autenticación y Cuentas")
         .WithSummary("Autenticar credenciales de usuario y emitir token JWT")
-        .WithDescription("Valida el correo y la contraseña contra el hash de la base de datos. Si tiene éxito, devuelve un token stateless firmado.");
+        .WithDescription("Valida el correo y la contraseña. Cuenta intentos fallidos en memoria y bloquea temporalmente la cuenta por 5 minutos tras 5 intentos fallidos sin modificar la base de datos.");
     }
 }
 
@@ -45,7 +46,9 @@ public class LoginHandler
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
 
-    // Aquí inyectamos la base de datos y la configuración (para leer el appsettings.json)
+    // Estructura estática en memoria para rastrear intentos por Email: (Intentos, BloqueadoHasta)
+    private static readonly ConcurrentDictionary<string, (int Intentos, DateTime? BloqueadoHasta)> _registroDeIntentos = new();
+
     public LoginHandler(ApplicationDbContext context, IConfiguration configuration)
     {
         _context = context;
@@ -54,19 +57,52 @@ public class LoginHandler
 
     public IResult Handle(LoginRequest request)
     {
-        // 1. Buscar al usuario por su correo electrónico
-        var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == request.Email);
+        string emailKey = request.Email.ToLower().Trim();
 
-        // 2. Verificar que el usuario exista y que la contraseña coincida con el Hash usando BCrypt
-        if (usuario == null || !BCrypt.Net.BCrypt.Verify(request.Password, usuario.PasswordHash))
+        // 1. Verificar si el correo ya está bloqueado temporalmente en memoria
+        if (_registroDeIntentos.TryGetValue(emailKey, out var registro))
         {
-            return Results.Unauthorized(); // Retorna 401 si las credenciales son incorrectas
+            if (registro.BloqueadoHasta.HasValue && registro.BloqueadoHasta.Value > DateTime.UtcNow)
+            {
+                var tiempoRestante = registro.BloqueadoHasta.Value - DateTime.UtcNow;
+                return Results.Json(new { Mensaje = $"Cuenta temporalmente bloqueada. Intente de nuevo en {Math.Ceiling(tiempoRestante.TotalMinutes)} minutos." }, statusCode: StatusCodes.Status429TooManyRequests);
+            }
         }
 
-        // 3. Generación del Token JWT usando la estructura del equipo
-        var tokenHandler = new JwtSecurityTokenHandler();
+        // 2. Buscar al usuario en la base de datos
+        var usuario = _context.Usuarios.FirstOrDefault(u => u.Email == request.Email);
 
-        // Obtenemos los valores navegando dentro del bloque "JwtSettings"
+        // 3. Validar credenciales
+        if (usuario == null || !BCrypt.Net.BCrypt.Verify(request.Password, usuario.PasswordHash))
+        {
+            // Incrementar contador de intentos fallidos
+            int intentosActuales = 1;
+            DateTime? bloqueadoHasta = null;
+
+            if (_registroDeIntentos.TryGetValue(emailKey, out var registroExistente))
+            {
+                intentosActuales = registroExistente.Intentos + 1;
+            }
+
+            if (intentosActuales >= 5) // Umbral de bloqueo
+            {
+                bloqueadoHasta = DateTime.UtcNow.AddMinutes(5); // Bloqueo de 5 minutos
+                _registroDeIntentos[emailKey] = (intentosActuales, bloqueadoHasta);
+
+                return Results.Json(new { Mensaje = "Demasiados intentos fallidos. Cuenta bloqueada temporalmente por 5 minutos." }, statusCode: StatusCodes.Status429TooManyRequests);
+            }
+            else
+            {
+                _registroDeIntentos[emailKey] = (intentosActuales, null);
+                return Results.Json(new { Mensaje = $"Credenciales incorrectas. Intentos fallidos: {intentosActuales}/5." }, statusCode: StatusCodes.Status401Unauthorized);
+            }
+        }
+
+        // 4. Si el login es exitoso, limpiamos su historial de intentos fallidos
+        _registroDeIntentos.TryRemove(emailKey, out _);
+
+        // 5. Generación del Token JWT
+        var tokenHandler = new JwtSecurityTokenHandler();
         var secretKey = _configuration["JwtSettings:SecretKey"];
         var issuer = _configuration["JwtSettings:Issuer"];
         var audience = _configuration["JwtSettings:Audience"];
@@ -87,13 +123,14 @@ public class LoginHandler
                 new Claim(JwtRegisteredClaimNames.Email, usuario.Email)
             }),
             Expires = DateTime.UtcNow.AddHours(8),
-            Issuer = issuer,     
+            Issuer = issuer,
             Audience = audience,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
 
         var token = tokenHandler.CreateToken(tokenDescriptor);
         var tokenString = tokenHandler.WriteToken(token);
+
         return Results.Ok(new LoginResponse { Token = tokenString });
     }
 }

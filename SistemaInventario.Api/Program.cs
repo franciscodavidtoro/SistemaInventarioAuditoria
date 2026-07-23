@@ -25,6 +25,12 @@ builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.DeleteElemen
 builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.ImportarMasivoHandler>();
 builder.Services.AddScoped<SistemaInventario.Api.Features.Elementos.ExportarExcelHandler>();
 
+builder.Services.AddSingleton<SistemaInventario.Api.Features.Imagenes.ImagenStorage>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Imagenes.CreateImagenHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Imagenes.GetImagenByIdHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Imagenes.UpdateImagenHandler>();
+builder.Services.AddScoped<SistemaInventario.Api.Features.Imagenes.DeleteImagenHandler>();
+
 // Database (in-memory for Phase 1)
 // 1. Obtienes el string de conexión de tu appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -83,8 +89,11 @@ builder.Services.AddSwaggerGen(options =>
         [new Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
     });
 
-    // ACTIVA EL FILTRO PARA QUITAR CANDADOS A LAS EXCEPCIONES
+    // FILTRO: Quitar candados a los endpoints sin autenticación
     options.OperationFilter<SistemaInventario.Api.Infrastructure.Security.QuitarCandadoFiltro>();
+    
+    // FILTRO: Documentar automáticamente la respuesta 401 en endpoints autorizados
+    options.OperationFilter<SistemaInventario.Api.Infrastructure.Security.DocumentarUnauthorizedFiltro>();
 });
 // Keep any existing AddOpenApi extension if present
 try
@@ -92,6 +101,21 @@ try
     builder.Services.AddOpenApi();
 }
 catch { /* ignore if AddOpenApi not available */ }
+
+
+//cors
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PoliticaFrontend", policy =>
+    {
+        // Reemplaza con la URL y puerto exacto donde corre tu entorno de desarrollo web (ej. Vite/SvelteKit)
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+
 
 var app = builder.Build();
 
@@ -108,6 +132,7 @@ catch { /* ignore if MapOpenApi not available */ }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseCors("PoliticaFrontend");
 // Use in-repo JWT validator middleware to populate HttpContext.User when valid Bearer token provided
 app.UseJwtValidation();
 app.UseAuthorization();
@@ -155,6 +180,12 @@ SistemaInventario.Api.Features.Usuarios.GetUsuariosEndpoint.Map(app);
 SistemaInventario.Api.Features.Usuarios.GetUsuarioByIdEndpoint.Map(app);
 SistemaInventario.Api.Features.Usuarios.UpdateUsuarioEndpoint.Map(app);
 SistemaInventario.Api.Features.Usuarios.DeleteUsuarioEndpoint.Map(app);
+
+// Mapear rutas de Imagenes
+SistemaInventario.Api.Features.Imagenes.CreateImagenEndpoint.Map(app);
+SistemaInventario.Api.Features.Imagenes.GetImagenByIdEndpoint.Map(app);
+SistemaInventario.Api.Features.Imagenes.UpdateImagenEndpoint.Map(app);
+SistemaInventario.Api.Features.Imagenes.DeleteImagenEndpoint.Map(app);
 
 app.Run();
 
