@@ -63,8 +63,10 @@ public class ExportarExcelHandler
             .ToListAsync();
 
         await using var stream = new MemoryStream();
-        await MiniExcel.SaveAsAsync(stream, elementos, true, string.Empty, ExcelType.XLSX, null, CancellationToken.None);
-        stream.Position = 0;
+
+        string nombreArchivo = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        await MiniExcel.SaveAsAsync(stream, elementos, true, nombreArchivo, ExcelType.XLSX, null, CancellationToken.None);
+        stream.Position = 0; ;
 
         return Results.File(stream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "elementos.xlsx");
     }
