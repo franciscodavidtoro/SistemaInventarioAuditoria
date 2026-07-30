@@ -26,12 +26,13 @@ public static class ImportarMasivoEndpoint
 {
     public static void Map(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/elementos/importar", async (HttpRequest request, ImportarMasivoHandler handler, HttpContext http) => await handler.HandleAsync(request, http))
+        app.MapPost("/api/elementos/importar", async (IFormFile archivo, ImportarMasivoHandler handler, HttpContext http) =>
+            await handler.HandleAsync(archivo, http))
+            .DisableAntiforgery() // <-- Muy importante en .NET 8 para que deje subir archivos
             .RequireAuthorization()
             .WithTags("Procesamiento Masivo")
             .WithSummary("Importar elementos desde un archivo Excel o CSV")
             .WithDescription("Procesa un archivo subido y crea elementos asociados al usuario autenticado.")
-            .Accepts<IFormFile>("multipart/form-data")
             .Produces<ImportarMasivoResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest);
     }
@@ -48,18 +49,14 @@ public class ImportarMasivoHandler
         _db = db;
     }
 
-    public async Task<IResult> HandleAsync(HttpRequest request, HttpContext http)
+    public async Task<IResult> HandleAsync(IFormFile archivo, HttpContext http)
     {
-        if (!request.HasFormContentType)
-            return Results.BadRequest("El contenido debe ser multipart/form-data.");
+        // Validaciones directas del archivo
+        if (archivo == null || archivo.Length <= 0)
+            return Results.BadRequest("No se encontró ningún archivo o está vacío.");
 
-        var form = await request.ReadFormAsync();
-        var archivo = form.Files.GetFile("archivo");
-        if (archivo == null)
-            return Results.BadRequest("Se requiere un archivo con el nombre 'archivo'.");
-
-        if (archivo.Length <= 0 || archivo.Length > MaxFileSizeBytes)
-            return Results.BadRequest("El archivo es demasiado grande o está vacío.");
+        if (archivo.Length > MaxFileSizeBytes)
+            return Results.BadRequest("El archivo es demasiado grande.");
 
         var extension = Path.GetExtension(archivo.FileName).ToLowerInvariant();
         if (!AllowedExtensions.Contains(extension))
@@ -70,10 +67,12 @@ public class ImportarMasivoHandler
             return Results.Forbid();
 
         var rows = new List<ImportarFila>();
+
+
         using (var stream = archivo.OpenReadStream())
         {
             var excelType = extension == ".csv" ? ExcelType.CSV : ExcelType.XLSX;
-            var importRows = await MiniExcel.QueryAsync<ImportarFila>(stream, string.Empty, excelType, "A1", null, CancellationToken.None, true);
+            var importRows = await MiniExcel.QueryAsync<ImportarFila>(stream, null, excelType, "A1", null, CancellationToken.None, true);
             foreach (var row in importRows)
             {
                 if (string.IsNullOrWhiteSpace(row.CodigoBien) || string.IsNullOrWhiteSpace(row.NombreBien))
